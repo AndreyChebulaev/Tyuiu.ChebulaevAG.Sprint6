@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,94 +7,219 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Tyuiu.ChebulaevAG.Sprint6.Task7.V17.Lib;
+using System.IO;
 
 namespace Tyuiu.ChebulaevAG.Sprint6.Task7.V17
 {
-    using System;
-using System.Windows.Forms;
-
-namespace MatrixDesktopApp
-{
-    public partial class MainForm : Form
+    public partial class FormMain : Form
     {
-        private DataGridView dataGridView;
-        private TextBox n1TextBox, n2TextBox, cTextBox, kTextBox, lTextBox;
-
-        public MainForm()
+        public FormMain()
         {
             InitializeComponent();
+            openFileDialogTask_IME.Filter = "Значения, разделенные запятыми(*.csv)|*.csv|Всефайлы(*.*)|*.*";
+            saveFileDialogMatrix_IME.Filter = "Значения, разделенные запятыми(*.csv)|*.csv|Всефайлы(*.*)|*.*";
         }
+        static string openFilePath;
+        static int rows;
+        static int columns;
 
-        private void InitializeComponent()
+        DataService ds = new DataService();
+
+        public static int[,] LoadFromFileData(string filePath)
         {
-            // Создание формы
-            this.Text = "Matrix Desktop App";
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
+            string fileData = File.ReadAllText(filePath);
 
-            // Создание DataGridView
-            dataGridView = new DataGridView();
-            dataGridView.Dock = DockStyle.Top;
-            this.Controls.Add(dataGridView);
+            fileData = fileData.Replace("\n", "\r");
+            string[] lines = fileData.Split(new char[] { '\r' }, StringSplitOptions.RemoveEmptyEntries);
 
-            // Создание TextBox для параметров
-            n1TextBox = CreateParameterTextBox("n1");
-            n2TextBox = CreateParameterTextBox("n2");
-            cTextBox = CreateParameterTextBox("c");
-            kTextBox = CreateParameterTextBox("k");
-            lTextBox = CreateParameterTextBox("l");
+            rows = lines.Length;
+            columns = lines[0].Split(';').Length;
 
-            // Кнопка для выполнения операции
-            Button calculateButton = new Button();
-            calculateButton.Text = "Calculate";
-            calculateButton.Dock = DockStyle.Bottom;
-            calculateButton.Click += CalculateButtonClick;
-            this.Controls.Add(calculateButton);
-        }
+            int[,] arrayValues = new int[rows, columns];
 
-        private TextBox CreateParameterTextBox(string paramName)
-        {
-            TextBox textBox = new TextBox();
-            textBox.Name = $"{paramName}TextBox";
-            textBox.Dock = DockStyle.Top;
-            this.Controls.Add(textBox);
-
-            Label label = new Label();
-            label.Text = paramName;
-            label.Dock = DockStyle.Top;
-            this.Controls.Add(label);
-
-            return textBox;
-        }
-
-        private void CalculateButtonClick(object sender, EventArgs e)
-        {
-            // Получение параметров из TextBox
-            int n1 = int.Parse(n1TextBox.Text);
-            int n2 = int.Parse(n2TextBox.Text);
-            int c = int.Parse(cTextBox.Text);
-            int k = int.Parse(kTextBox.Text);
-            int l = int.Parse(lTextBox.Text);
-
-            // Здесь вызывается метод GetMatrix с использованием параметров и выводится результат в DataGridView
-            // Например: int result = MatrixOperations.GetMatrix(matrix, n1, n2, c, k, l);
-            // Затем можно отобразить результат в DataGridView.
-        }
-
-        // Ваш метод для заполнения DataGridView матрицей
-        private void FillDataGridView(int[,] matrix)
-        {
-            dataGridView.Rows.Clear();
-            for (int i = 0; i < matrix.GetLength(0); i++)
+            for (int r = 0; r < rows; r++)
             {
-                DataGridViewRow row = new DataGridViewRow();
-                for (int j = 0; j < matrix.GetLength(1); j++)
+                string[] line_r = lines[r].Split(';');
+                for (int c = 0; c < columns; c++)
                 {
-                    row.Cells.Add(new DataGridViewTextBoxCell { Value = matrix[i, j] });
+                    arrayValues[r, c] = Convert.ToInt32(line_r[c]);
                 }
-                dataGridView.Rows.Add(row);
             }
+            return arrayValues;
+        }
+        private void buttonDone_IME_Click(object sender, EventArgs e)
+        {
+            int[,] arrayValues = new int[rows, columns];
+            arrayValues = ds.GetMatrix(openFilePath);
+
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < columns; c++)
+                {
+                    dataGridViewOut_IME.Rows[r].Cells[c].Value = arrayValues[r, c];
+                }
+            }
+
+            buttonSave_IME.Enabled = true;
+        }
+
+        private void buttonInfo_IME_Click(object sender, EventArgs e)
+        {
+            FormAbout formAbout = new FormAbout();
+            formAbout.ShowDialog();
+        }
+
+        private void buttonOpenFile_IME_Click(object sender, EventArgs e)
+        {
+            openFileDialogTask_IME.ShowDialog();
+            openFilePath = openFileDialogTask_IME.FileName;
+
+            int[,] arrayValues = LoadFromFileData(openFilePath);
+
+            dataGridViewIn_IME.ColumnCount = columns;
+            dataGridViewIn_IME.RowCount = rows;
+            dataGridViewOut_IME.ColumnCount = columns;
+            dataGridViewOut_IME.RowCount = rows;
+
+            for (int i = 0; i < columns; i++)
+            {
+                dataGridViewIn_IME.Columns[i].Width = 35;
+                dataGridViewOut_IME.Columns[i].Width = 35;
+            }
+
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < columns; c++)
+                {
+                    dataGridViewIn_IME.Rows[r].Cells[c].Value = arrayValues[r, c];
+                }
+            }
+
+            arrayValues = ds.GetMatrix(openFilePath);
+            buttonDone_IME.Enabled = true;
+        }
+
+        private void buttonSave_IME_Click(object sender, EventArgs e)
+        {
+            saveFileDialogMatrix_IME.FileName = "OutPutFileTask7V17.csv";
+            saveFileDialogMatrix_IME.InitialDirectory = Directory.GetCurrentDirectory();
+            saveFileDialogMatrix_IME.ShowDialog();
+
+            string path = saveFileDialogMatrix_IME.FileName;
+
+            FileInfo fileInfo = new FileInfo(path);
+            bool fileExists = fileInfo.Exists;
+
+            if (fileExists)
+            {
+                File.Delete(path);
+            }
+
+            int rows = dataGridViewOut_IME.RowCount;
+            int columns = dataGridViewOut_IME.Columns.Count;
+
+            string str = "";
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < columns; j++)
+                {
+                    if (j != columns - 1)
+                    {
+                        str += dataGridViewOut_IME.Rows[i].Cells[j].Value + ";";
+                    }
+                    else
+                    {
+                        str += dataGridViewOut_IME.Rows[i].Cells[j].Value;
+                    }
+                }
+            }
+            File.AppendAllText(path, str + Environment.NewLine);
+            str = "";
+        }
+        private void File_Load_IME(object sender, EventArgs e)
+        {
+            dataGridViewIn_IME.ColumnCount = 50;
+            dataGridViewOut_IME.ColumnCount = 50;
+
+            dataGridViewOut_IME.RowCount = 50;
+            dataGridViewIn_IME.RowCount = 50;
+            panelInput_IME.Width = this.Width / 2;
+            panelOut_IME.Width = this.Width / 2;
+        }
+
+        private void buttonInfo_IME_MouseEnter(object sender, EventArgs e)
+        {
+            toolTipButton_IME.ToolTipTitle = "Справка";
+        }
+
+        private void buttonDone_IME_MouseEnter(object sender, EventArgs e)
+        {
+            toolTipButton_IME.ToolTipTitle = "Выполнить";
+        }
+
+        private void buttonSave_IME_MouseEnter(object sender, EventArgs e)
+        {
+            toolTipButton_IME.ToolTipTitle = "Сохранить в файл";
+        }
+
+        private void buttonOpenFile_IME_MouseEnter(object sender, EventArgs e)
+        {
+            toolTipButton_IME.ToolTipTitle = "Открыть файл";
+        }
+
+        private void buttonOpenFile_IME_MouseMove(object sender, MouseEventArgs e)
+        {
+            Cursor = Cursors.Hand;
+            base.OnMouseMove(e);
+        }
+
+        private void buttonOpenFile_IME_MouseLeave(object sender, EventArgs e)
+        {
+            Cursor = Cursors.Arrow;
+            base.OnMouseLeave(e);
+        }
+
+        private void buttonDone_IME_MouseMove(object sender, MouseEventArgs e)
+        {
+            Cursor = Cursors.Hand;
+            base.OnMouseMove(e);
+        }
+
+        private void buttonDone_IME_MouseLeave(object sender, EventArgs e)
+        {
+            Cursor = Cursors.Arrow;
+            base.OnMouseLeave(e);
+        }
+
+        private void buttonSave_IME_MouseMove(object sender, MouseEventArgs e)
+        {
+            Cursor = Cursors.Hand;
+            base.OnMouseMove(e);
+        }
+
+        private void buttonSave_IME_MouseLeave(object sender, EventArgs e)
+        {
+            Cursor = Cursors.Arrow;
+            base.OnMouseLeave(e);
+        }
+
+        private void buttonInfo_IME_MouseMove(object sender, MouseEventArgs e)
+        {
+            Cursor = Cursors.Hand;
+            base.OnMouseMove(e);
+        }
+
+        private void buttonInfo_IME_MouseLeave(object sender, EventArgs e)
+        {
+            Cursor = Cursors.Arrow;
+            base.OnMouseLeave(e);
+        }
+
+        private void textBoxTask_IME_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
-
